@@ -15,6 +15,10 @@ import json
 import os
 import scipy.io.wavfile as wf
 import csv
+from pathlib import *
+
+
+ROOT = 'C:/Users/AGENT/Documents/newproject/'
 
 
 class VoiceActivityDetection:
@@ -129,39 +133,71 @@ def get_text_from_voice(filename):
     
 if __name__ == '__main__' :
 
-    # split voices and remove silence
-    wav = wf.read('calls\\call.wav')
-    ch = wav[1].shape[1]
-    sr = wav[0]
+    import pathlib
+    from pathlib import Path
 
-    c0 = wav[1][:,0]
-    c1 = wav[1][:,1]
+    pathlist = Path(ROOT+"calls").glob('*.wav')
+    i=0
+    for path in pathlist:
+        # because path is object not string
+        path_in_str = str(path)
+        audio_folder_p = ""
+        csv_folder_p=""
 
-    print('c0 %i'%c0.size)
 
-    vad = VoiceActivityDetection()
-    vad.process(c0)
-    voice_samples = vad.get_voice_samples()
-    wf.write('output.2.wav',sr,voice_samples)
+        try:
+            audio_folder =  Path(ROOT+'audio_results/audio_result_client_'+str(i))
+            csv_folder =  Path(ROOT+'csv_calls/csv_result_client_'+str(i))
+            audio_folder.mkdir(parents=True, exist_ok=False)
+            csv_folder.mkdir(parents=True, exist_ok=False)
+            audio_folder_p = str(audio_folder)
+            csv_folder_p=str(csv_folder)
+        except FileExistsError:
+            print("Folder is already there")
+        else:
+            print("Folder was created")
 
-    if ch==1:
-        exit()
         
-    vad = VoiceActivityDetection()
-    vad.process(c1)
-    voice_samples = vad.get_voice_samples()
-    wf.write('output.1.wav',sr,voice_samples)
 
 
-    # # recognize
-    
 
-    with open('client.csv', 'w') as output:
-        writer = csv.DictWriter(output, fieldnames=["paroles"])
-        writer.writeheader()
-        print(get_text_from_voice('output.2.wav'), file=output)
 
-    with open('agent.csv', 'w') as output:
-                print(get_text_from_voice('output.1.wav'), file=output)
+
+    # split voices and remove silence
+        wav = wf.read(path)
+        ch = wav[1].shape[1]
+        sr = wav[0]
+
+        c0 = wav[1][:,0]
+        c1 = wav[1][:,1]
+
+        print('c0 %i'%c0.size)
+
+        vad = VoiceActivityDetection()
+        vad.process(c0)
+        voice_samples = vad.get_voice_samples()
+
+        wf.write(audio_folder_p+'/output.2.wav',sr,voice_samples)
+
+        if ch==1:
+            exit()
+            
+        vad = VoiceActivityDetection()
+        vad.process(c1)
+        voice_samples = vad.get_voice_samples()
+        wf.write(audio_folder_p+'/output.1.wav',sr,voice_samples)
+
+
+        # # recognize
+
+        with open(csv_folder_p+'/client.csv', 'w') as output:
+            writer = csv.DictWriter(output, fieldnames=["paroles"])
+            writer.writeheader()
+            print(get_text_from_voice(audio_folder_p+'/output.2.wav'), file=output)
+
+        with open(csv_folder_p+'/agent.csv', 'w') as output:
+                    print(get_text_from_voice(audio_folder_p+'/output.1.wav'), file=output)
+
+        i=i+1
 
 
